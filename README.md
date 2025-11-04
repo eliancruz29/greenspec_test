@@ -332,6 +332,12 @@ The GitHub Actions workflow automatically:
 - Verify NEXT_PUBLIC_SIGNALR_URL is correct
 - Ensure JWT token is valid
 
+### Docker build fails with npm ci error
+
+- Ensure package-lock.json exists in the frontend directory
+- Run `npm install` in the frontend directory to generate it
+- Commit package-lock.json to version control for consistent builds
+
 ### Docker Compose issues
 
 - Run `docker-compose down -v` to clean volumes
