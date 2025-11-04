@@ -1,0 +1,182 @@
+### GreenSpec Industrial Automation Alert Service API
+### Base URL: https://localhost:5001/api
+
+# Variables
+@baseUrl = https://localhost:5001/api
+@token = YOUR_JWT_TOKEN_HERE
+
+### ==========================================================
+### Authentication Endpoints
+### ==========================================================
+
+### Login - Get JWT Token
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+
+### Extract token from login response (VS Code REST Client)
+# @token = {{login.response.body.token}}
+
+### ==========================================================
+### Configuration Endpoints
+### ==========================================================
+
+### Get Current Configuration
+GET {{baseUrl}}/config
+Authorization: Bearer {{token}}
+
+### Update Configuration
+PUT {{baseUrl}}/config
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "tempMax": 35.0,
+  "humidityMax": 75.0
+}
+
+### Update Configuration - Invalid (Test Validation)
+PUT {{baseUrl}}/config
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "tempMax": -10.0,
+  "humidityMax": 150.0
+}
+
+### ==========================================================
+### Alert Endpoints
+### ==========================================================
+
+### Get All Alerts
+GET {{baseUrl}}/alerts
+Authorization: Bearer {{token}}
+
+### Get Alerts - Filter by Status (Open)
+GET {{baseUrl}}/alerts?status=open
+Authorization: Bearer {{token}}
+
+### Get Alerts - Filter by Status (Acknowledged)
+GET {{baseUrl}}/alerts?status=acknowledged
+Authorization: Bearer {{token}}
+
+### Get Alerts - Filter by Date Range
+GET {{baseUrl}}/alerts?from=2025-11-01T00:00:00Z&to=2025-11-04T23:59:59Z
+Authorization: Bearer {{token}}
+
+### Get Alerts - Combined Filters
+GET {{baseUrl}}/alerts?status=open&from=2025-11-03T00:00:00Z&to=2025-11-04T23:59:59Z
+Authorization: Bearer {{token}}
+
+### Acknowledge Alert (Replace {id} with actual alert ID)
+POST {{baseUrl}}/alerts/1/ack
+Authorization: Bearer {{token}}
+
+### Acknowledge Alert - Not Found (Test Error Handling)
+POST {{baseUrl}}/alerts/99999/ack
+Authorization: Bearer {{token}}
+
+### ==========================================================
+### SignalR Hub
+### ==========================================================
+
+### SignalR Alert Hub Endpoint
+# WebSocket Connection: wss://localhost:5001/hubs/alerts?access_token={{token}}
+#
+# Note: This is a WebSocket endpoint and cannot be tested via HTTP requests.
+# Use a SignalR client or the frontend application to connect.
+#
+# Hub Methods:
+# - Server -> Client: "ReceiveAlert" - Broadcasts new alerts to all connected clients
+#
+# Connection:
+# 1. Establish WebSocket connection to: wss://localhost:5001/hubs/alerts
+# 2. Add access_token as query parameter for authentication
+# 3. Subscribe to "ReceiveAlert" method to receive real-time alerts
+
+### ==========================================================
+### Test Scenarios
+### ==========================================================
+
+### Scenario 1: Complete Workflow
+# 1. Login and get token
+# 2. Get current configuration
+# 3. Update configuration to trigger alerts
+# 4. Get all alerts
+# 5. Acknowledge an alert
+# 6. Verify alert status changed
+
+### Scenario 2: Configuration Update Triggers Alerts
+# 1. Update configuration with lower thresholds (e.g., TempMax: 20, HumidityMax: 50)
+# 2. Wait 3-5 seconds for sensor simulation
+# 3. Check for new alerts
+# 4. Update configuration back to normal values
+
+### Scenario 3: Real-time Monitoring
+# 1. Connect to SignalR hub with access token
+# 2. Update configuration to trigger alerts
+# 3. Receive real-time alerts via SignalR
+# 4. Acknowledge alerts via API
+# 5. Monitor alert status changes
+
+### ==========================================================
+### Error Handling Tests
+### ==========================================================
+
+### Unauthorized Request (No Token)
+GET {{baseUrl}}/config
+
+### Invalid Token
+GET {{baseUrl}}/config
+Authorization: Bearer invalid_token_here
+
+### Invalid Login Credentials
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "wronguser",
+  "password": "wrongpassword"
+}
+
+### Missing Required Fields
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": ""
+}
+
+### ==========================================================
+### Notes
+### ==========================================================
+#
+# Authentication:
+# - The demo user credentials are: admin / admin123
+# - JWT tokens expire after 24 hours
+# - Include the token in the Authorization header for protected endpoints
+#
+# Sensor Simulation:
+# - The background service generates sensor readings every 3-5 seconds
+# - Readings are random values: Temperature (15-40°C), Humidity (30-90%)
+# - Alerts are automatically created when readings exceed thresholds
+#
+# Alert Status:
+# - "Open" - Alert has been triggered but not acknowledged
+# - "Acknowledged" - Alert has been acknowledged by a user
+#
+# Date Filters:
+# - Use ISO 8601 format: YYYY-MM-DDTHH:mm:ssZ
+# - Both 'from' and 'to' parameters are optional
+# - Timezone: UTC
+#
+# SignalR Hub:
+# - Real-time WebSocket connection for alert notifications
+# - Automatically broadcasts alerts when they are created
+# - Requires authentication via access_token query parameter

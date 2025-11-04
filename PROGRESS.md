@@ -56,9 +56,9 @@
 ## 🚧 TODO - Remaining Tasks
 
 ### Backend
-1. ⏳ Write unit tests for domain logic and CQRS handlers
-2. ⏳ Create .http files for API testing
-3. ⏳ Add comprehensive API documentation
+1. ✅ Write unit tests for domain logic and CQRS handlers (82 tests, all passing)
+2. ✅ Create .http files for API testing (backend/api-tests.http)
+3. ✅ Add comprehensive API documentation (Swagger already configured)
 
 ### Frontend (Next.js 15)
 1. ⏳ Set up Next.js 15 project with TypeScript
