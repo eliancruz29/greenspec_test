@@ -1,0 +1,158 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  backend-test:
+    name: Backend - Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET 9
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+      working-directory: ./backend
+
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+      working-directory: ./backend
+
+    - name: Run tests
+      run: dotnet test --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage"
+      working-directory: ./backend
+
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v4
+      with:
+        files: ./backend/tests/**/coverage.cobertura.xml
+        flags: backend
+        name: backend-coverage
+
+  backend-docker:
+    name: Backend - Docker Build
+    runs-on: ubuntu-latest
+    needs: backend-test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        file: ./backend/Dockerfile
+        push: false
+        tags: greenspec-backend:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  frontend-lint-build:
+    name: Frontend - Lint and Build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: ./frontend/package-lock.json
+
+    - name: Install dependencies
+      run: npm ci
+      working-directory: ./frontend
+
+    - name: Run ESLint
+      run: npm run lint
+      working-directory: ./frontend
+
+    - name: Build application
+      run: npm run build
+      working-directory: ./frontend
+      env:
+        NEXT_PUBLIC_API_URL: https://api.example.com/api
+        NEXT_PUBLIC_SIGNALR_URL: wss://api.example.com/hubs/alerts
+
+  frontend-docker:
+    name: Frontend - Docker Build
+    runs-on: ubuntu-latest
+    needs: frontend-lint-build
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./frontend
+        file: ./frontend/Dockerfile
+        push: false
+        tags: greenspec-frontend:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  docker-compose-test:
+    name: Docker Compose - Integration Test
+    runs-on: ubuntu-latest
+    needs: [backend-docker, frontend-docker]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Start services
+      run: docker-compose up -d
+
+    - name: Wait for services to be healthy
+      run: |
+        timeout 120 bash -c 'until curl -f http://localhost:5001/api/auth/login > /dev/null 2>&1; do sleep 5; done'
+
+    - name: Test backend health
+      run: |
+        response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5001/api/config)
+        if [ $response -eq 401 ]; then
+          echo "Backend is responding (401 expected for unauthenticated request)"
+        else
+          echo "Unexpected response: $response"
+          exit 1
+        fi
+
+    - name: Test frontend health
+      run: |
+        response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000)
+        if [ $response -eq 200 ] || [ $response -eq 307 ]; then
+          echo "Frontend is responding"
+        else
+          echo "Unexpected response: $response"
+          exit 1
+        fi
+
+    - name: Show service logs on failure
+      if: failure()
+      run: docker-compose logs
+
+    - name: Cleanup
+      if: always()
+      run: docker-compose down -v
