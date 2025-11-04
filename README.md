@@ -1,6 +1,6 @@
 # GreenSpec - Industrial Automation Alert Service
 
-A real-time industrial automation monitoring system built with .NET 9, Next.js 15, and SignalR for sensor data monitoring and alert management.
+A real-time industrial automation monitoring system built with .NET 8, Next.js 15, and SignalR for sensor data monitoring and alert management.
 
 ## Features
 
@@ -15,10 +15,10 @@ A real-time industrial automation monitoring system built with .NET 9, Next.js 1
 
 ## Tech Stack
 
-### Backend (.NET 9)
+### Backend (.NET 8)
 
-- **Framework**: ASP.NET Core 9 with Minimal APIs
-- **Database**: SQL Server with Entity Framework Core 9
+- **Framework**: ASP.NET Core 8 with Minimal APIs
+- **Database**: SQL Server with Entity Framework Core 8
 - **Authentication**: JWT Bearer tokens with BCrypt password hashing
 - **Real-time**: SignalR for WebSocket communication
 - **Patterns**: Clean Architecture, CQRS (MediatR), DDD
@@ -51,7 +51,7 @@ A real-time industrial automation monitoring system built with .NET 9, Next.js 1
                          │ HTTPS/WSS
 ┌────────────────────────┴────────────────────────────────────┐
 │                      Backend API                             │
-│              ASP.NET Core 9 Minimal API                     │
+│              ASP.NET Core 8 Minimal API                     │
 ├──────────────────────────────────────────────────────────────┤
 │  Application Layer (CQRS + MediatR + FluentValidation)     │
 ├──────────────────────────────────────────────────────────────┤
@@ -69,7 +69,7 @@ A real-time industrial automation monitoring system built with .NET 9, Next.js 1
 
 ### Prerequisites
 
-- [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
 - [Node.js 20+](https://nodejs.org/)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop) (for containerized setup)
 
@@ -290,7 +290,7 @@ dotnet ef database update
 
 The GitHub Actions workflow automatically:
 
-1. Builds and tests the backend (.NET 9)
+1. Builds and tests the backend (.NET 8)
 2. Runs 82 unit tests with code coverage
 3. Builds Docker images for backend and frontend
 4. Runs integration tests with docker-compose
@@ -318,7 +318,7 @@ The GitHub Actions workflow automatically:
 
 - Ensure SQL Server is running
 - Check connection string in appsettings.json
-- Verify .NET 9 SDK is installed
+- Verify .NET 8 SDK is installed
 
 ### Frontend can't connect to backend
 
