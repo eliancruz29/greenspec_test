@@ -20,7 +20,6 @@ export class AlertHubConnection {
       .build();
 
     this.connection.on("ReceiveAlert", (alert: AlertDto) => {
-      console.log("Alert received via SignalR:", alert);
       if (this.onAlertReceived) {
         this.onAlertReceived(alert);
       }

@@ -24,6 +24,6 @@ public class LoginCommandHandler(
         var token = jwtTokenGenerator.GenerateToken(user.Id, user.Username);
         var expiresAt = DateTime.UtcNow.AddHours(24);
 
-        return new LoginResponse(token, expiresAt);
+        return new LoginResponse(token, user.Username, expiresAt);
     }
 }

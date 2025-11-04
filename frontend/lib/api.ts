@@ -44,6 +44,7 @@ export interface LoginRequest {
 export interface LoginResponse {
   token: string;
   username: string;
+  expiresAt: string;
 }
 
 export interface ConfigDto {

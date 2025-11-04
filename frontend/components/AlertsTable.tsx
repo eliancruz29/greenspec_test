@@ -11,7 +11,7 @@ export default function AlertsTable() {
   const { data: alerts, isLoading } = useQuery({
     queryKey: ["alerts", statusFilter],
     queryFn: () => alertsApi.getAlerts(statusFilter ? { status: statusFilter } : undefined),
-    refetchInterval: 5000, // Refetch every 5 seconds
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
   const acknowledgeMutation = useMutation({

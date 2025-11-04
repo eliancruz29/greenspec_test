@@ -24,7 +24,6 @@ export default function DashboardPage() {
     const token = localStorage.getItem("token");
     if (token && isAuthenticated) {
       alertHub.start(token, (alert: AlertDto) => {
-        console.log("New alert received:", alert);
         // Invalidate alerts query to refetch
         queryClient.invalidateQueries({ queryKey: ["alerts"] });
 
@@ -32,7 +31,7 @@ export default function DashboardPage() {
         if ("Notification" in window && Notification.permission === "granted") {
           new Notification("New Alert!", {
             body: `${alert.type} exceeded threshold: ${alert.value.toFixed(1)} > ${alert.threshold.toFixed(1)}`,
-            icon: "/alert-icon.png",
+            icon: "/alert-icon.svg",
           });
         }
       });

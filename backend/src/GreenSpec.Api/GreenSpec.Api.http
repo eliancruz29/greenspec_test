@@ -1,4 +1,4 @@
-@GreenSpec.Api_HostAddress = http://localhost:5238
+@GreenSpec.Api_HostAddress = http://localhost:5001
 
 GET {{GreenSpec.Api_HostAddress}}/weatherforecast/
 Accept: application/json
