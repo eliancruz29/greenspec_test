@@ -14,29 +14,35 @@ function DashboardPage() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token) {
-      alertHub.start(token, (alert: AlertDto) => {
-        // Invalidate alerts query to refetch
-        queryClient.invalidateQueries({ queryKey: ["alerts"] });
+    if (!token) return;
 
-        // Show notification
-        if ("Notification" in window && Notification.permission === "granted") {
-          new Notification("New Alert!", {
-            body: `${alert.type} exceeded threshold: ${alert.value.toFixed(1)} > ${alert.threshold.toFixed(1)}`,
-            icon: "/alert-icon.svg",
-          });
-        }
-      });
+    // Subscribe to alert notifications
+    const unsubscribe = alertHub.onAlert((alert: AlertDto) => {
+      // Invalidate alerts query to refetch
+      queryClient.invalidateQueries({ queryKey: ["alerts"] });
 
-      // Request notification permission
-      if ("Notification" in window && Notification.permission === "default") {
-        Notification.requestPermission();
+      // Show notification
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("New Alert!", {
+          body: `${alert.type} exceeded threshold: ${alert.value.toFixed(1)} > ${alert.threshold.toFixed(1)}`,
+          icon: "/alert-icon.svg",
+        });
       }
+    });
 
-      return () => {
-        alertHub.stop();
-      };
+    // Start the SignalR connection
+    alertHub.start(token);
+
+    // Request notification permission
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
     }
+
+    return () => {
+      // Unsubscribe from alerts and stop connection
+      unsubscribe();
+      alertHub.stop();
+    };
   }, [queryClient]);
 
   return (
