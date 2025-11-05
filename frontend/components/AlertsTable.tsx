@@ -1,44 +1,36 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { alertsApi, type AlertDto } from "@/lib/api";
+import Card, { CardContent, CardHeader } from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import { useInfiniteAlerts } from "@/lib/hooks/useInfiniteAlerts";
+import {
+  getStatusBadgeClasses,
+  getTypeBadgeClasses,
+  formatAlertValue,
+} from "@/lib/utils/alert-formatters";
+import { formatDateTime } from "@/lib/utils/date-formatters";
+import { queryKeys } from "@/lib/api/query-keys";
 
 export default function AlertsTable() {
   const queryClient = useQueryClient();
-  const [statusFilter, setStatusFilter] = useState<string>("");
-  const pageSize = 10;
-  const observerTarget = useRef<HTMLDivElement>(null);
 
   const {
-    data,
-    fetchNextPage,
+    alerts,
+    totalCount,
+    statusFilter,
+    setStatusFilter,
+    observerTarget,
     hasNextPage,
     isFetchingNextPage,
     isLoading,
-  } = useInfiniteQuery({
-    queryKey: ["alerts", statusFilter],
-    queryFn: ({ pageParam = 1 }) =>
-      alertsApi.getPagedAlerts({
-        status: statusFilter || undefined,
-        pageNumber: pageParam,
-        pageSize: pageSize,
-      }),
-    getNextPageParam: (lastPage) => {
-      return lastPage.hasNextPage ? lastPage.pageNumber + 1 : undefined;
-    },
-    initialPageParam: 1,
-    refetchInterval: 30000, // Refetch every 30 seconds
-  });
-
-  // Flatten all pages into a single array of alerts
-  const alerts = data?.pages.flatMap((page) => page.data) ?? [];
-  const totalCount = data?.pages[0]?.totalCount ?? 0;
+  } = useInfiniteAlerts({ pageSize: 10 });
 
   const acknowledgeMutation = useMutation({
     mutationFn: (id: number) => alertsApi.acknowledgeAlert(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["alerts"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all() });
     },
   });
 
@@ -46,105 +38,53 @@ export default function AlertsTable() {
     setStatusFilter(filter);
   };
 
-  // Intersection Observer for infinite scroll
-  const handleObserver = useCallback(
-    (entries: IntersectionObserverEntry[]) => {
-      const [target] = entries;
-      if (target.isIntersecting && hasNextPage && !isFetchingNextPage) {
-        fetchNextPage();
-      }
-    },
-    [fetchNextPage, hasNextPage, isFetchingNextPage]
-  );
-
-  useEffect(() => {
-    const element = observerTarget.current;
-    if (!element) return;
-
-    const observer = new IntersectionObserver(handleObserver, {
-      threshold: 0.1,
-    });
-
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [handleObserver]);
-
-  const getStatusBadgeColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "open":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
-      case "acknowledged":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
-    }
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type.toLowerCase()) {
-      case "temperature":
-        return "text-orange-600 dark:text-orange-400";
-      case "humidity":
-        return "text-blue-600 dark:text-blue-400";
-      default:
-        return "text-gray-600 dark:text-gray-400";
-    }
-  };
-
   if (isLoading) {
     return (
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
-          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
-          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
-          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
-        </div>
-      </div>
+      <Card>
+        <CardContent>
+          <div className="animate-pulse space-y-4">
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
-      <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+    <Card>
+      <CardHeader>
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
             Alerts ({totalCount})
           </h2>
           <div className="flex space-x-2">
-            <button
+            <Button
               onClick={() => handleFilterChange("")}
-              className={`px-3 py-1 text-sm font-medium rounded-md ${
-                statusFilter === ""
-                  ? "bg-indigo-600 text-white"
-                  : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-              }`}
+              variant={statusFilter === "" ? "primary" : "secondary"}
+              size="sm"
             >
               All
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => handleFilterChange("open")}
-              className={`px-3 py-1 text-sm font-medium rounded-md ${
-                statusFilter === "open"
-                  ? "bg-indigo-600 text-white"
-                  : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-              }`}
+              variant={statusFilter === "open" ? "primary" : "secondary"}
+              size="sm"
             >
               Open
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => handleFilterChange("acknowledged")}
-              className={`px-3 py-1 text-sm font-medium rounded-md ${
-                statusFilter === "acknowledged"
-                  ? "bg-indigo-600 text-white"
-                  : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-              }`}
+              variant={statusFilter === "acknowledged" ? "primary" : "secondary"}
+              size="sm"
             >
               Acknowledged
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
+      </CardHeader>
 
       <div className="overflow-x-auto">
         {alerts && alerts.length > 0 ? (
@@ -175,24 +115,22 @@ export default function AlertsTable() {
               {alerts.map((alert: AlertDto) => (
                 <tr key={alert.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`text-sm font-medium ${getTypeColor(alert.type)}`}>
+                    <span className={`inline-flex px-2 text-xs leading-5 font-semibold rounded-full ${getTypeBadgeClasses(alert.type)}`}>
                       {alert.type}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                    {alert.value.toFixed(2)}
-                    {alert.type.toLowerCase() === "temperature" ? "°C" : "%"}
+                    {formatAlertValue(alert)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                    {alert.threshold.toFixed(2)}
-                    {alert.type.toLowerCase() === "temperature" ? "°C" : "%"}
+                    {formatAlertValue({ ...alert, value: alert.threshold })}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                    {new Date(alert.createdAt).toLocaleString()}
+                    {formatDateTime(alert.createdAt)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeColor(
+                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClasses(
                         alert.status
                       )}`}
                     >
@@ -201,13 +139,14 @@ export default function AlertsTable() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     {alert.status.toLowerCase() === "open" && (
-                      <button
+                      <Button
                         onClick={() => acknowledgeMutation.mutate(alert.id)}
                         disabled={acknowledgeMutation.isPending}
-                        className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 disabled:opacity-50"
+                        variant="ghost"
+                        size="sm"
                       >
                         Acknowledge
-                      </button>
+                      </Button>
                     )}
                   </td>
                 </tr>
@@ -239,6 +178,6 @@ export default function AlertsTable() {
           </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

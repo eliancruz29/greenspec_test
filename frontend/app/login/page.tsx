@@ -1,59 +1,30 @@
 "use client";
 
-import { useState, FormEvent, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import Input from "@/components/ui/Input";
+import Button from "@/components/ui/Button";
+import Alert from "@/components/ui/Alert";
+import { useAuthRedirect } from "@/lib/hooks/useAuthRedirect";
+import { useLoginForm } from "@/lib/hooks/useLoginForm";
 
 export default function LoginPage() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const { login, isAuthenticated, loading: authLoading } = useAuth();
-  const router = useRouter();
+  const { shouldShowContent } = useAuthRedirect({
+    redirectIfAuthenticated: "/dashboard",
+  });
 
-  // Redirect authenticated users to dashboard
-  useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      router.push("/dashboard");
-    }
-  }, [isAuthenticated, authLoading, router]);
+  const {
+    username,
+    password,
+    error,
+    loading,
+    setUsername,
+    setPassword,
+    handleSubmit,
+  } = useLoginForm();
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-
-    try {
-      await login({ username, password });
-    } catch (err: unknown) {
-      if (err && typeof err === "object" && "response" in err) {
-        const error = err as { response?: { status?: number } };
-        if (error.response?.status === 401) {
-          setError("Invalid username or password");
-        } else {
-          setError("An error occurred. Please try again.");
-        }
-      } else {
-        setError("An error occurred. Please try again.");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Show loading spinner while checking authentication or if already authenticated
-  if (authLoading || isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">
-            {isAuthenticated ? "Redirecting to dashboard..." : "Loading..."}
-          </p>
-        </div>
-      </div>
-    );
+  // Show loading spinner while checking authentication or redirecting
+  if (!shouldShowContent) {
+    return <LoadingSpinner />;
   }
 
   return (
@@ -67,61 +38,57 @@ export default function LoginPage() {
             Sign in to access the dashboard
           </p>
         </div>
+
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="username" className="sr-only">
-                Username
-              </label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white dark:bg-gray-800 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                disabled={loading}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white dark:bg-gray-800 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
-              />
-            </div>
+          <div className="space-y-4">
+            <Input
+              id="username"
+              name="username"
+              type="text"
+              required
+              placeholder="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              disabled={loading}
+              autoComplete="username"
+            />
+
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              required
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
+              autoComplete="current-password"
+            />
           </div>
 
           {error && (
-            <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4">
-              <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
-            </div>
+            <Alert variant="error">{error}</Alert>
           )}
 
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? "Signing in..." : "Sign in"}
-            </button>
-          </div>
+          <Button
+            type="submit"
+            disabled={loading}
+            loading={loading}
+            fullWidth
+          >
+            Sign in
+          </Button>
 
           <div className="text-center">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Default credentials: <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">admin</code> / <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">admin123</code>
+              Default credentials:{" "}
+              <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                admin
+              </code>{" "}
+              /{" "}
+              <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                admin123
+              </code>
             </p>
           </div>
         </form>

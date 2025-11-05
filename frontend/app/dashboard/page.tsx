@@ -1,49 +1,16 @@
 "use client";
 
-import { useEffect } from "react";
 import { useAuth, withAuth } from "@/lib/auth";
+import Button from "@/components/ui/Button";
 import ConfigCard from "@/components/ConfigCard";
 import AlertsTable from "@/components/AlertsTable";
-import { alertHub } from "@/lib/signalr";
-import { useQueryClient } from "@tanstack/react-query";
-import type { AlertDto } from "@/lib/api";
+import { useAlertNotifications } from "@/lib/hooks/useAlertNotifications";
 
 function DashboardPage() {
   const { username, logout } = useAuth();
-  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    // Subscribe to alert notifications
-    const unsubscribe = alertHub.onAlert((alert: AlertDto) => {
-      // Invalidate alerts query to refetch
-      queryClient.invalidateQueries({ queryKey: ["alerts"] });
-
-      // Show notification
-      if ("Notification" in window && Notification.permission === "granted") {
-        new Notification("New Alert!", {
-          body: `${alert.type} exceeded threshold: ${alert.value.toFixed(1)} > ${alert.threshold.toFixed(1)}`,
-          icon: "/alert-icon.svg",
-        });
-      }
-    });
-
-    // Start the SignalR connection
-    alertHub.start(token);
-
-    // Request notification permission
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
-    }
-
-    return () => {
-      // Unsubscribe from alerts and stop connection
-      unsubscribe();
-      alertHub.stop();
-    };
-  }, [queryClient]);
+  // Set up real-time alert notifications
+  useAlertNotifications();
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -60,12 +27,9 @@ function DashboardPage() {
               <span className="text-gray-700 dark:text-gray-300">
                 Welcome, {username}
               </span>
-              <button
-                onClick={logout}
-                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
+              <Button onClick={logout} size="sm">
                 Logout
-              </button>
+              </Button>
             </div>
           </div>
         </div>
