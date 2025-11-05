@@ -4,6 +4,8 @@ public class Config : BaseEntity
 {
     public decimal TempMax { get; private set; }
     public decimal HumidityMax { get; private set; }
+    public bool IsActive { get; private set; }
+    public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
 
     private Config() { } // EF Core
@@ -12,6 +14,8 @@ public class Config : BaseEntity
     {
         TempMax = tempMax;
         HumidityMax = humidityMax;
+        IsActive = true;
+        CreatedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
     }
 
@@ -24,6 +28,12 @@ public class Config : BaseEntity
             throw new ArgumentException("Humidity threshold must be between 0 and 100", nameof(humidityMax));
 
         return new Config(tempMax, humidityMax);
+    }
+
+    public void Deactivate()
+    {
+        IsActive = false;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void UpdateThresholds(decimal tempMax, decimal humidityMax)

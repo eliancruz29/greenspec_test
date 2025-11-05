@@ -19,6 +19,8 @@ public class ConfigTests
         config.Should().NotBeNull();
         config.TempMax.Should().Be(tempMax);
         config.HumidityMax.Should().Be(humidityMax);
+        config.IsActive.Should().BeTrue();
+        config.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
         config.UpdatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
     }
 
@@ -111,5 +113,42 @@ public class ConfigTests
         // Assert
         act.Should().Throw<ArgumentException>()
             .WithMessage("Humidity threshold must be between 0 and 100*");
+    }
+
+    [Fact]
+    public void Deactivate_ShouldSetIsActiveToFalse()
+    {
+        // Arrange
+        var config = Config.Create(30m, 80m);
+        var originalUpdateTime = config.UpdatedAt;
+
+        // Wait a small amount to ensure UpdatedAt changes
+        Thread.Sleep(10);
+
+        // Act
+        config.Deactivate();
+
+        // Assert
+        config.IsActive.Should().BeFalse();
+        config.UpdatedAt.Should().BeAfter(originalUpdateTime);
+    }
+
+    [Fact]
+    public void Deactivate_WhenCalledMultipleTimes_ShouldUpdateTimestamp()
+    {
+        // Arrange
+        var config = Config.Create(30m, 80m);
+        config.Deactivate();
+        var firstDeactivationTime = config.UpdatedAt;
+
+        // Wait a small amount to ensure UpdatedAt changes
+        Thread.Sleep(10);
+
+        // Act
+        config.Deactivate();
+
+        // Assert
+        config.IsActive.Should().BeFalse();
+        config.UpdatedAt.Should().BeAfter(firstDeactivationTime);
     }
 }

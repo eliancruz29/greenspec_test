@@ -34,17 +34,26 @@ public class CachedConfigRepositoryDecorator(
         return config;
     }
 
-    public async Task<Config> UpdateConfigAsync(Config config, CancellationToken cancellationToken = default)
+    public async Task<Config> CreateNewConfigVersionAsync(Config config, CancellationToken cancellationToken = default)
     {
         // Delegate to inner repository
-        var updatedConfig = await innerRepository.UpdateConfigAsync(config, cancellationToken);
+        var createdConfig = await innerRepository.CreateNewConfigVersionAsync(config, cancellationToken);
 
-        // Invalidate cache when config is updated
+        // Invalidate cache when new config version is created
         cache.Remove(ConfigCacheKey);
 
         // Set the new config in cache
-        cache.Set(ConfigCacheKey, updatedConfig, CacheExpiration);
+        cache.Set(ConfigCacheKey, createdConfig, CacheExpiration);
 
-        return updatedConfig;
+        return createdConfig;
+    }
+
+    public async Task DeactivateAllConfigsAsync(CancellationToken cancellationToken = default)
+    {
+        // Delegate to inner repository
+        await innerRepository.DeactivateAllConfigsAsync(cancellationToken);
+
+        // Invalidate cache when configs are deactivated
+        cache.Remove(ConfigCacheKey);
     }
 }

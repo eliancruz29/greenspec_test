@@ -18,18 +18,17 @@ public class UpdateConfigCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WithValidCommand_ShouldUpdateConfig()
+    public async Task Handle_WithValidCommand_ShouldCreateNewConfigVersion()
     {
         // Arrange
-        var existingConfig = Config.Create(30m, 80m);
         var command = new UpdateConfigCommand(35m, 75m);
 
         _configRepositoryMock
-            .Setup(x => x.GetCurrentConfigAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingConfig);
+            .Setup(x => x.DeactivateAllConfigsAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         _configRepositoryMock
-            .Setup(x => x.UpdateConfigAsync(It.IsAny<Config>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.CreateNewConfigVersionAsync(It.IsAny<Config>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Config c, CancellationToken _) => c);
 
         // Act
@@ -41,45 +40,60 @@ public class UpdateConfigCommandHandlerTests
         result.HumidityMax.Should().Be(75m);
 
         _configRepositoryMock.Verify(
-            x => x.GetCurrentConfigAsync(It.IsAny<CancellationToken>()),
+            x => x.DeactivateAllConfigsAsync(It.IsAny<CancellationToken>()),
             Times.Once);
 
         _configRepositoryMock.Verify(
-            x => x.UpdateConfigAsync(It.IsAny<Config>(), It.IsAny<CancellationToken>()),
+            x => x.CreateNewConfigVersionAsync(It.IsAny<Config>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
     [Fact]
-    public async Task Handle_WhenConfigNotFound_ShouldThrowInvalidOperationException()
+    public async Task Handle_ShouldDeactivateAllConfigsBeforeCreatingNew()
     {
         // Arrange
         var command = new UpdateConfigCommand(35m, 75m);
+        var deactivateCalled = false;
+        var createCalled = false;
 
         _configRepositoryMock
-            .Setup(x => x.GetCurrentConfigAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Config?)null);
+            .Setup(x => x.DeactivateAllConfigsAsync(It.IsAny<CancellationToken>()))
+            .Callback(() =>
+            {
+                deactivateCalled = true;
+                createCalled.Should().BeFalse("Deactivate should be called before Create");
+            })
+            .Returns(Task.CompletedTask);
+
+        _configRepositoryMock
+            .Setup(x => x.CreateNewConfigVersionAsync(It.IsAny<Config>(), It.IsAny<CancellationToken>()))
+            .Callback(() =>
+            {
+                createCalled = true;
+                deactivateCalled.Should().BeTrue("Create should be called after Deactivate");
+            })
+            .ReturnsAsync((Config c, CancellationToken _) => c);
 
         // Act
-        var act = async () => await _handler.Handle(command, CancellationToken.None);
+        await _handler.Handle(command, CancellationToken.None);
 
         // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("Configuration not found");
+        deactivateCalled.Should().BeTrue();
+        createCalled.Should().BeTrue();
     }
 
     [Fact]
-    public async Task Handle_ShouldPassCorrectParametersToRepository()
+    public async Task Handle_ShouldCreateNewConfigWithCorrectParameters()
     {
         // Arrange
-        var existingConfig = Config.Create(30m, 80m);
         var command = new UpdateConfigCommand(40m, 85m);
 
         _configRepositoryMock
-            .Setup(x => x.GetCurrentConfigAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingConfig);
+            .Setup(x => x.DeactivateAllConfigsAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         _configRepositoryMock
-            .Setup(x => x.UpdateConfigAsync(It.IsAny<Config>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.CreateNewConfigVersionAsync(It.IsAny<Config>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Config c, CancellationToken _) => c);
 
         // Act
@@ -87,8 +101,8 @@ public class UpdateConfigCommandHandlerTests
 
         // Assert
         _configRepositoryMock.Verify(
-            x => x.UpdateConfigAsync(
-                It.Is<Config>(c => c.TempMax == 40m && c.HumidityMax == 85m),
+            x => x.CreateNewConfigVersionAsync(
+                It.Is<Config>(c => c.TempMax == 40m && c.HumidityMax == 85m && c.IsActive == true),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }

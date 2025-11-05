@@ -1,4 +1,5 @@
 using GreenSpec.Application.DTOs;
+using GreenSpec.Domain.Entities;
 using GreenSpec.Domain.Interfaces;
 using MediatR;
 
@@ -9,18 +10,18 @@ public class UpdateConfigCommandHandler(IConfigRepository configRepository)
 {
     public async Task<ConfigDto> Handle(UpdateConfigCommand request, CancellationToken cancellationToken)
     {
-        var config = await configRepository.GetCurrentConfigAsync(cancellationToken)
-            ?? throw new InvalidOperationException("Configuration not found");
+        // Deactivate all existing configurations
+        await configRepository.DeactivateAllConfigsAsync(cancellationToken);
 
-        config.UpdateThresholds(request.TempMax, request.HumidityMax);
-
-        var updated = await configRepository.UpdateConfigAsync(config, cancellationToken);
+        // Create new configuration version
+        var newConfig = Config.Create(request.TempMax, request.HumidityMax);
+        var created = await configRepository.CreateNewConfigVersionAsync(newConfig, cancellationToken);
 
         return new ConfigDto(
-            updated.Id,
-            updated.TempMax,
-            updated.HumidityMax,
-            updated.UpdatedAt
+            created.Id,
+            created.TempMax,
+            created.HumidityMax,
+            created.UpdatedAt
         );
     }
 }

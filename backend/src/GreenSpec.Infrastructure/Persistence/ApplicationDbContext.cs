@@ -19,7 +19,15 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasKey(e => e.Id);
             entity.Property(e => e.TempMax).HasPrecision(5, 2).IsRequired();
             entity.Property(e => e.HumidityMax).HasPrecision(5, 2).IsRequired();
+            entity.Property(e => e.IsActive).IsRequired();
+            entity.Property(e => e.CreatedAt).IsRequired();
             entity.Property(e => e.UpdatedAt).IsRequired();
+
+            // Index for querying active configuration
+            entity.HasIndex(e => e.IsActive);
+
+            // Composite index for efficiently getting the latest active config
+            entity.HasIndex(e => new { e.IsActive, e.CreatedAt });
         });
 
         // Alert entity configuration
