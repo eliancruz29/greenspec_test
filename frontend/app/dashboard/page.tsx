@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth-context";
+import { useAuth } from "@/lib/auth";
 import ConfigCard from "@/components/ConfigCard";
 import AlertsTable from "@/components/AlertsTable";
 import { alertHub } from "@/lib/signalr";

@@ -1,7 +1,7 @@
 "use client";
 
 import "./globals.css";
-import { AuthProvider } from "@/lib/auth-context";
+import { AuthProvider } from "@/lib/auth";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 
