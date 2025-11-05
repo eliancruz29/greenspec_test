@@ -29,6 +29,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
+      - DOTNET_RUNNING_IN_CONTAINER=true
       - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=GreenSpecDb;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=True;MultipleActiveResultSets=true
       - Jwt__Secret=YourSuperSecretKeyThatIsAtLeast32CharactersLongForProductionUse!
       - Jwt__Issuer=GreenSpec
@@ -39,6 +40,12 @@ services:
     depends_on:
       sqlserver:
         condition: service_healthy
+    healthcheck:
+      test: curl -f http://localhost:8080/api/config || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
     networks:
       - greenspec-network
     restart: unless-stopped
@@ -55,7 +62,8 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - greenspec-network
     restart: unless-stopped

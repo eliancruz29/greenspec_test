@@ -116,7 +116,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// Only use HTTPS redirection outside of containers
+if (!Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER")?.Equals("true") == true)
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseCors("AllowFrontend");
 
