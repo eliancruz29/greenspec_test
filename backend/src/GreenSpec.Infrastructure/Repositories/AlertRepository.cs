@@ -51,11 +51,11 @@ public class AlertRepository(ApplicationDbContext context) : IAlertRepository
         return (alerts, totalCount);
     }
 
-    public async Task<Alert> AddAsync(Alert alert, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Alert>> AddRangeAsync(IEnumerable<Alert> alerts, CancellationToken cancellationToken = default)
     {
-        context.Alerts.Add(alert);
+        context.Alerts.AddRange(alerts);
         await context.SaveChangesAsync(cancellationToken);
-        return alert;
+        return alerts;
     }
 
     public async Task<Alert> UpdateAsync(Alert alert, CancellationToken cancellationToken = default)

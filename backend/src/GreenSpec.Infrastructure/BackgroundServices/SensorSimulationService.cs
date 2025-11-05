@@ -71,25 +71,29 @@ public class SensorSimulationService(
         // Evaluate against thresholds
         var alerts = alertGenerationService.EvaluateReading(reading, config);
 
-        // Save and notify about any alerts
-        foreach (var alert in alerts)
+        // Save all alerts in a single batch operation
+        if (alerts.Any())
         {
-            var savedAlert = await alertRepository.AddAsync(alert, cancellationToken);
+            var savedAlerts = await alertRepository.AddRangeAsync(alerts, cancellationToken);
 
-            var alertDto = new AlertDto(
-                savedAlert.Id,
-                savedAlert.Type.ToString(),
-                savedAlert.Value,
-                savedAlert.Threshold,
-                savedAlert.CreatedAt,
-                savedAlert.Status.ToString()
-            );
+            // Notify about each alert after successful batch insert
+            foreach (var savedAlert in savedAlerts)
+            {
+                var alertDto = new AlertDto(
+                    savedAlert.Id,
+                    savedAlert.Type.ToString(),
+                    savedAlert.Value,
+                    savedAlert.Threshold,
+                    savedAlert.CreatedAt,
+                    savedAlert.Status.ToString()
+                );
 
-            await alertNotifier.NotifyAlertAsync(alertDto, cancellationToken);
+                await alertNotifier.NotifyAlertAsync(alertDto, cancellationToken);
 
-            logger.LogWarning(
-                "Alert Generated - Type: {Type}, Value: {Value}, Threshold: {Threshold}",
-                alertDto.Type, alertDto.Value, alertDto.Threshold);
+                logger.LogWarning(
+                    "Alert Generated - Type: {Type}, Value: {Value}, Threshold: {Threshold}",
+                    alertDto.Type, alertDto.Value, alertDto.Threshold);
+            }
         }
     }
 
