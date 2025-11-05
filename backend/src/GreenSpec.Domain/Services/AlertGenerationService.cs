@@ -4,7 +4,7 @@ using GreenSpec.Domain.ValueObjects;
 
 namespace GreenSpec.Domain.Services;
 
-public class AlertGenerationService
+public sealed class AlertGenerationService
 {
     public List<Alert> EvaluateReading(SensorReading reading, Config config)
     {

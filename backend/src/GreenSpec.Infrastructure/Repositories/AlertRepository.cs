@@ -13,10 +13,12 @@ public class AlertRepository(ApplicationDbContext context) : IAlertRepository
         return await context.Alerts.FindAsync([id], cancellationToken);
     }
 
-    public async Task<IEnumerable<Alert>> GetAllAsync(
+    public async Task<(IEnumerable<Alert> Alerts, int TotalCount)> GetPagedAsync(
         AlertStatus? status = null,
         DateTime? fromDate = null,
         DateTime? toDate = null,
+        int pageNumber = 1,
+        int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
         var query = context.Alerts.AsQueryable();
@@ -36,9 +38,17 @@ public class AlertRepository(ApplicationDbContext context) : IAlertRepository
             query = query.Where(a => a.CreatedAt <= toDate.Value);
         }
 
-        return await query
+        // Get total count before pagination
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        // Apply pagination
+        var alerts = await query
             .OrderByDescending(a => a.CreatedAt)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync(cancellationToken);
+
+        return (alerts, totalCount);
     }
 
     public async Task<Alert> AddAsync(Alert alert, CancellationToken cancellationToken = default)

@@ -11,13 +11,15 @@ public static class AlertEndpoints
     public static RouteGroupBuilder MapAlertEndpoints(this RouteGroupBuilder group)
     {
         group.MapGet("/", async (
-            [FromQuery] string? status,
-            [FromQuery] DateTime? from,
-            [FromQuery] DateTime? to,
             ISender sender,
-            CancellationToken cancellationToken) =>
+            CancellationToken cancellationToken,
+            [FromQuery] string? status = null,
+            [FromQuery] DateTime? from = null,
+            [FromQuery] DateTime? to = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10) =>
         {
-            var query = new GetAlertsQuery(status, from, to);
+            var query = new GetPagedAlertsQuery(status, from, to, pageNumber, pageSize);
             var result = await sender.Send(query, cancellationToken);
 
             return Results.Ok(result);
@@ -26,10 +28,10 @@ public static class AlertEndpoints
         .WithOpenApi(operation =>
         {
             operation.Summary = "Get alerts";
-            operation.Description = "Retrieve alerts with optional filters (status, date range)";
+            operation.Description = "Retrieve alerts with pagination and optional filters (status, date range)";
             return operation;
         })
-        .Produces<IEnumerable<AlertDto>>()
+        .Produces<PagedResultDto<AlertDto>>()
         .RequireAuthorization();
 
         group.MapPost("/{id:int}/ack", async (

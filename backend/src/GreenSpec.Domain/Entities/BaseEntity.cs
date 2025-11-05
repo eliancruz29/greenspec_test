@@ -2,5 +2,12 @@ namespace GreenSpec.Domain.Entities;
 
 public abstract class BaseEntity
 {
-    public int Id { get; set; }
+    public int Id { get; private set; }
+
+    protected BaseEntity() { }
+
+    protected BaseEntity(int id)
+    {
+        Id = id;
+    }
 }

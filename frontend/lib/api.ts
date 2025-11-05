@@ -68,6 +68,16 @@ export interface AlertDto {
   status: string;
 }
 
+export interface PagedResultDto<T> {
+  data: T[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+}
+
 // API Functions
 export const authApi = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
@@ -88,12 +98,14 @@ export const configApi = {
 };
 
 export const alertsApi = {
-  getAlerts: async (params?: {
+  getPagedAlerts: async (params?: {
     status?: string;
     from?: string;
     to?: string;
-  }): Promise<AlertDto[]> => {
-    const response = await api.get<AlertDto[]>("/alerts", { params });
+    pageNumber?: number;
+    pageSize?: number;
+  }): Promise<PagedResultDto<AlertDto>> => {
+    const response = await api.get<PagedResultDto<AlertDto>>("/alerts", { params });
     return response.data;
   },
   acknowledgeAlert: async (id: number): Promise<AlertDto> => {

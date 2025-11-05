@@ -25,7 +25,7 @@ public static class AuthEndpoints
             operation.Description = "Authenticate user and return JWT token";
             return operation;
         })
-        .Produces<GreenSpec.Application.DTOs.LoginResponse>()
+        .Produces<Application.DTOs.LoginResponse>()
         .ProducesProblem(401);
 
         return group;

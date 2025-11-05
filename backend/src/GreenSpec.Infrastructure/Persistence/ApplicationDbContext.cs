@@ -26,13 +26,21 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         modelBuilder.Entity<Alert>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Type).HasConversion<string>().IsRequired();
+            entity.Property(e => e.Type).HasConversion<string>().HasMaxLength(20).IsRequired();
             entity.Property(e => e.Value).HasPrecision(5, 2).IsRequired();
             entity.Property(e => e.Threshold).HasPrecision(5, 2).IsRequired();
             entity.Property(e => e.CreatedAt).IsRequired();
             entity.Property(e => e.Status).HasConversion<string>().IsRequired();
+
+            // Individual indexes for specific queries
             entity.HasIndex(e => e.Status);
             entity.HasIndex(e => e.CreatedAt);
+
+            // Composite index for queries filtering by Status and ordering by CreatedAt
+            entity.HasIndex(e => new { e.Status, e.CreatedAt });
+
+            // Index on Type for future type-based filtering
+            entity.HasIndex(e => e.Type);
         });
 
         // User entity configuration
