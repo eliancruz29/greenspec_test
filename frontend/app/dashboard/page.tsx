@@ -1,28 +1,20 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth";
+import { useAuth, withAuth } from "@/lib/auth";
 import ConfigCard from "@/components/ConfigCard";
 import AlertsTable from "@/components/AlertsTable";
 import { alertHub } from "@/lib/signalr";
 import { useQueryClient } from "@tanstack/react-query";
 import type { AlertDto } from "@/lib/api";
 
-export default function DashboardPage() {
-  const { isAuthenticated, username, logout, loading } = useAuth();
-  const router = useRouter();
+function DashboardPage() {
+  const { username, logout } = useAuth();
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.push("/login");
-    }
-  }, [isAuthenticated, loading, router]);
-
-  useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token && isAuthenticated) {
+    if (token) {
       alertHub.start(token, (alert: AlertDto) => {
         // Invalidate alerts query to refetch
         queryClient.invalidateQueries({ queryKey: ["alerts"] });
@@ -45,18 +37,7 @@ export default function DashboardPage() {
         alertHub.stop();
       };
     }
-  }, [isAuthenticated, queryClient]);
-
-  if (loading || !isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  }, [queryClient]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -99,3 +80,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+export default withAuth(DashboardPage);
